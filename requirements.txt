@@ -1,0 +1,6 @@
+pip install wordcloud
+pip install pandas
+pip install matplotlib
+pip install nltk
+pip install -U "tensorflow-text==2.13.*"
+pip install "tf-models-official==2.13.*"
