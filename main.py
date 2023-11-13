@@ -18,6 +18,10 @@ import tensorflow_hub as hub
 import tensorflow_text as text
 from official.nlp import optimization
 import matplotlib.pyplot as plt
+import re
+
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 def build_classifier_model():
   text_input = tf.keras.layers.Input(shape=(), dtype=tf.string, name='text')
@@ -48,7 +52,7 @@ dates = df["date"]
 df.drop('link', axis=1)
 df.drop('date', axis=1)
 
-print("Authors before cleaning: \n", df["authors"])
+#print("Authors before cleaning: \n", df["authors"])
 authors_list = []
 
 for value in df["authors"]:
@@ -60,7 +64,7 @@ for value in df["authors"]:
   authors = [x for x in authors if x]
   authors_list.append(authors)
 
-print("\nAuthors after cleaning: \n", authors_list[:200])
+#print("\nAuthors after cleaning: \n", authors_list[:200])
 df["authors"] = authors_list
 
 # Output class distribution
@@ -93,50 +97,50 @@ median_headline_lengths_per_class = dict(sorted(median_headline_lengths_per_clas
 avg_desc_lengths_per_class = dict(sorted(avg_desc_lengths_per_class.items(), key=lambda item: item[1], reverse=True))
 median_desc_lengths_per_class = dict(sorted(median_desc_lengths_per_class.items(), key=lambda item: item[1], reverse=True))
 
-i = 0
-for key in news_classes_count.keys():
-  if i==3:
-    break
-  plt.figure(figsize=(10, 10))
-  plt.title('Headline Length boxplot for the Class ' + key)
-  plt.ylabel('Length')
-  plt.boxplot(headline_lengths_per_class[key])
-  plt.figure(figsize=(10, 10))
-  plt.title('Description Length boxplot for the Class ' + key)
-  plt.ylabel('Length')
-  plt.boxplot(desc_lengths_per_class[key])
-  plt.show()
-  i += 1
+#i = 0
+#for key in news_classes_count.keys():
+#  if i==3:
+#    break
+#  plt.figure(figsize=(10, 10))
+#  plt.title('Headline Length boxplot for the Class ' + key)
+#  plt.ylabel('Length')
+#  plt.boxplot(headline_lengths_per_class[key])
+#  plt.figure(figsize=(10, 10))
+#  plt.title('Description Length boxplot for the Class ' + key)
+#  plt.ylabel('Length')
+#  plt.boxplot(desc_lengths_per_class[key])
+#  plt.show()
+#  i += 1
 
 
-print("News class count: ", news_classes_count)
-print("Average headline lengths per class: ", avg_headline_lengths_per_class)
-print("Average short desc lengths per class: ", avg_desc_lengths_per_class)
-print("Median headline lengths per class: ", median_headline_lengths_per_class)
-print("Median short desc lengths per class: ", median_desc_lengths_per_class)
+#print("News class count: ", news_classes_count)
+#print("Average headline lengths per class: ", avg_headline_lengths_per_class)
+#print("Average short desc lengths per class: ", avg_desc_lengths_per_class)
+#print("Median headline lengths per class: ", median_headline_lengths_per_class)
+#print("Median short desc lengths per class: ", median_desc_lengths_per_class)
 
 # Displaying the Wordcloud, word frequencies and
-for i in range(3):
-  news_class = list(news_classes_count.keys())[i]
-  print(f'The Wordcloud for class "{news_class}" is shown below:\n')
-  combined_class_headlines = " ".join(df[df["category"] == news_class]["headline"])
+#for i in range(3):
+#  news_class = list(news_classes_count.keys())[i]
+#  print(f'The Wordcloud for class "{news_class}" is shown below:\n')
+#  combined_class_headlines = " ".join(df[df["category"] == news_class]["headline"])
   # print(combined_class_headlines[:1000])
-  words = re.findall(r'\w+', combined_class_headlines)
-  filtered_words = [word for word in words if word not in set(stopwords.words('english'))]
-  word_freq = Counter(filtered_words)
-  print(f'Word frequencies (minus stopwords) for class "{news_class}": {word_freq}')
+#  words = re.findall(r'\w+', combined_class_headlines)
+#  filtered_words = [word for word in words if word not in set(stopwords.words('english'))]
+#  word_freq = Counter(filtered_words)
+#  print(f'Word frequencies (minus stopwords) for class "{news_class}": {word_freq}')
 
-  for j in [2,3]:
-    n_grams = ngrams(words, j)
-    n_gram_counter = Counter(n_grams)
-    top_ten_n_grams = n_gram_counter.most_common(10)
-    print(f'Most common {j}-grams for class {news_class}: {top_ten_n_grams}')
+#  for j in [2,3]:
+#    n_grams = ngrams(words, j)
+#    n_gram_counter = Counter(n_grams)
+#    top_ten_n_grams = n_gram_counter.most_common(10)
+#    print(f'Most common {j}-grams for class {news_class}: {top_ten_n_grams}')
 
-  wordcloud = WordCloud(width=600, height=300, background_color='white').generate(combined_class_headlines)
-  plt.figure(figsize=(10, 5))
-  plt.imshow(wordcloud, interpolation='bilinear')
-  plt.axis('off')
-  plt.show()
+#  wordcloud = WordCloud(width=600, height=300, background_color='white').generate(combined_class_headlines)
+#  plt.figure(figsize=(10, 5))
+#  plt.imshow(wordcloud, interpolation='bilinear')
+#  plt.axis('off')
+#  plt.show()
 
 authors_ctgry_map = {}
 authors_count_map = {}
@@ -153,21 +157,21 @@ for i in range(len(df)):
       authors_ctgry_map[author] = {}
       authors_count_map[author] = 1
 
-print("Author - news category relationship: ", authors_ctgry_map)
+#print("Author - news category relationship: ", authors_ctgry_map)
 
 authors_count_map = dict(sorted(authors_count_map.items(), key=lambda item: item[1], reverse=True))
-print("No. of articles each author has written: ", authors_count_map)
+#print("No. of articles each author has written: ", authors_count_map)
 
 # Top 3 writers
-print("Articles written by lee moran: ", authors_ctgry_map["lee moran"])
-print("Articles written by ron dicker: ", authors_ctgry_map["ron dicker"])
-print("Articles written by ed mazza: ", authors_ctgry_map["ed mazza"])
+#print("Articles written by lee moran: ", authors_ctgry_map["lee moran"])
+#print("Articles written by ron dicker: ", authors_ctgry_map["ron dicker"])
+#print("Articles written by ed mazza: ", authors_ctgry_map["ed mazza"])
 
-plt.figure(figsize=(10, 10))
-plt.pie(x=df.category.value_counts(), labels=df.category.value_counts().index, autopct='%1.1f%%', textprops={'fontsize' : 8,
-                                                                                                'alpha' : .7});
-plt.title('Percentage Class Distribution', alpha=.7)
-plt.tight_layout()
+#plt.figure(figsize=(10, 10))
+#plt.pie(x=df.category.value_counts(), labels=df.category.value_counts().index, autopct='%1.1f%%', textprops={'fontsize' : 8,
+#                                                                                                'alpha' : .7});
+#plt.title('Percentage Class Distribution', alpha=.7)
+#plt.tight_layout()
 
 df["category"] = df["category"].replace(
               {"healthy living": "wellness",
@@ -204,7 +208,7 @@ for i in range(len(news_classes)):
 label_encoder = LabelEncoder()
 reduced_df["category"] = label_encoder.fit_transform(reduced_df["category"])
 
-print("Dataframe: \n", reduced_df)
+#print("Dataframe: \n", reduced_df)
 
 tf.get_logger().setLevel('ERROR')
 
