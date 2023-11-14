@@ -1,5 +1,6 @@
 import nltk
 import pandas as pd
+import numpy as np
 import json
 from numpy.lib.function_base import median
 from numpy import mean
@@ -30,8 +31,8 @@ def build_classifier_model():
   encoder = hub.KerasLayer(tfhub_handle_encoder, trainable=True, name='BERT_encoder')
   outputs = encoder(encoder_inputs)
   net = outputs['pooled_output']
-  net = tf.keras.layers.Dropout(0.1)(net)
-  net = tf.keras.layers.Dense(1, activation=None, name='classifier')(net)
+  net = tf.keras.layers.Dropout(0.45)(net)
+  net = tf.keras.layers.Dense(26, activation='softmax', name='classifier')(net)
   return tf.keras.Model(text_input, net)
 
 nltk.download('stopwords')
@@ -190,7 +191,10 @@ df["category"] = df["category"].replace(
               "style": "style & beauty",
               "green": "environment",
               "taste": "food & drink",
-              "culture & arts": "arts & culture"}
+              "culture & arts": "arts & culture",
+              "good news": "miscellaneous",
+              "weird news": "miscellaneous",
+              "fifty": "miscellaneous"}
             )
 
 # Feature transformation for training
@@ -213,7 +217,7 @@ reduced_df["category"] = label_encoder.fit_transform(reduced_df["category"])
 tf.get_logger().setLevel('ERROR')
 
 AUTOTUNE = tf.data.AUTOTUNE
-batch_size = 4
+batch_size = 32
 seed = 42
 
 validation_split = 0.3
@@ -240,9 +244,9 @@ bert_encoder_model = hub.KerasLayer(tfhub_handle_encoder)
 classifier_model = build_classifier_model()
 bert_raw_result = classifier_model(tf.constant(["Maria Sharapova beats Victoria Azarenka"]))
 print(tf.sigmoid(bert_raw_result))
-loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-metrics = tf.metrics.BinaryAccuracy()
-epochs = 5
+loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+metrics = tf.metrics.CategoricalAccuracy()
+epochs = 40
 steps_per_epoch = tf.data.experimental.cardinality(train_dataset).numpy()
 num_train_steps = steps_per_epoch * epochs
 num_warmup_steps = int(0.1*num_train_steps)
@@ -262,3 +266,16 @@ loss, accuracy = classifier_model.evaluate(validation_dataset)
 print(f'Loss: {loss}')
 print(f'Accuracy: {accuracy}')
 classifier_model.save("BERT_trial_1_model", include_optimizer=False)
+
+
+loaded_model = tf.saved_model.load('BERT_trial_1_model')
+#loaded_model.summary()
+
+pred = loaded_model(tf.constant(["Joe Biden wins the 2021 presidential elections.", "Taylor Swift wins a Grammy for ABCD", "Victoria Azarenka wins the US Open.", "Retail store in San Francisco robbed by 2 at gunpoint."]))
+pred_classes = np.argmax(pred, axis=1)
+print(pred_classes)
+
+for pred in pred_classes:
+  print(news_classes[pred])
+
+
