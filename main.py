@@ -203,14 +203,14 @@ df['combined_text'] = df['headline'] + " " + df['short_description']
 
 reduced_df = df[['combined_text', 'category']]
 
-news_classes = list(reduced_df["category"].unique())
-news_class_index = {}
+# news_classes = list(reduced_df["category"].unique())
+# news_class_index = {}
 
-for i in range(len(news_classes)):
-  news_class_index[news_classes[i]] = i
+# for i in range(len(news_classes)):
+#   news_class_index[news_classes[i]] = i
 
-label_encoder = LabelEncoder()
-reduced_df["category"] = label_encoder.fit_transform(reduced_df["category"])
+# label_encoder = LabelEncoder()
+# reduced_df["category"] = label_encoder.fit_transform(reduced_df["category"])
 
 #print("Dataframe: \n", reduced_df)
 
@@ -222,7 +222,9 @@ seed = 42
 
 validation_split = 0.3
 
-dataset = tf.data.Dataset.from_tensor_slices((reduced_df['combined_text'].values, reduced_df['category'].values))
+ds_output_class = pd.get_dummies(reduced_df['category'].values)
+print("\nDATASET CLASSES: ", ds_output_class.columns.tolist())
+dataset = tf.data.Dataset.from_tensor_slices((reduced_df['combined_text'].values, ds_output_class))
 dataset = dataset.shuffle(buffer_size=len(df), seed=seed, reshuffle_each_iteration=False)
 
 ds_size = len(df)
@@ -244,7 +246,7 @@ bert_encoder_model = hub.KerasLayer(tfhub_handle_encoder)
 classifier_model = build_classifier_model()
 bert_raw_result = classifier_model(tf.constant(["Maria Sharapova beats Victoria Azarenka"]))
 print(tf.sigmoid(bert_raw_result))
-loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+loss = tf.keras.losses.CategoricalCrossentropy()
 metrics = tf.metrics.CategoricalAccuracy()
 epochs = 40
 steps_per_epoch = tf.data.experimental.cardinality(train_dataset).numpy()
@@ -275,7 +277,7 @@ pred = loaded_model(tf.constant(["Joe Biden wins the 2021 presidential elections
 pred_classes = np.argmax(pred, axis=1)
 print(pred_classes)
 
-for pred in pred_classes:
-  print(news_classes[pred])
+# for pred in pred_classes:
+#   print(news_classes[pred])
 
 
