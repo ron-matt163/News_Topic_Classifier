@@ -239,7 +239,8 @@ train_dataset = tf.data.Dataset.from_tensor_slices((train_df['combined_text'].va
 validation_dataset = tf.data.Dataset.from_tensor_slices((validation_df['combined_text'].values, pd.get_dummies(validation_df['category'].values)))
 test_dataset = tf.data.Dataset.from_tensor_slices((test_df['combined_text'].values, pd.get_dummies(test_df['category'].values)))
 
-print("\nDATASET CLASSES: ", len(pd.get_dummies(train_df['category'].values).columns.tolist()), len(pd.get_dummies(validation_df['category'].values).columns.tolist()), len(pd.get_dummies(test_df['category'].values).columns.tolist()))
+print("\nDATASET CLASSES: ", pd.get_dummies(train_df['category'].values).columns.tolist())
+print("\nActual test classes: ", test_df['category'])
 
 # Shuffle and batch datasets
 train_dataset = train_dataset.shuffle(buffer_size=len(train_df), seed=seed, reshuffle_each_iteration=False).batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
@@ -281,7 +282,7 @@ classifier_model.save("BERT_trial_1_model_new16Nov", include_optimizer=False)
 loaded_model = tf.saved_model.load('BERT_trial_1_model_new16Nov')
 #loaded_model.summary()
 
-pred = loaded_model(tf.constant(["Joe Biden wins the 2021 presidential elections.", "Taylor Swift wins a Grammy for ABCD", "Victoria Azarenka wins the US Open.", "Retail store in San Francisco robbed by 2 at gunpoint."]))
+pred = loaded_model(test_df['combined_text'].values)
 pred_classes = np.argmax(pred, axis=1)
 print("\n\nPredicted classes: \n", pred_classes)
 
