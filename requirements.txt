@@ -8,3 +8,4 @@ pip uninstall tensorflow==2.13.1
 pip install -U "tensorflow-text==2.14.*"
 pip install "tf-models-official==2.14.*"
 pip install tensorflow[and-cuda]
+pip install seaborn

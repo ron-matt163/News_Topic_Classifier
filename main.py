@@ -20,6 +20,10 @@ import tensorflow_text as text
 from official.nlp import optimization
 import matplotlib.pyplot as plt
 import re
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
+import seaborn as sns
+
 
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
@@ -222,23 +226,25 @@ AUTOTUNE = tf.data.AUTOTUNE
 batch_size = 8
 seed = 42
 
-validation_split = 0.3
+train_df, temp_df = train_test_split(reduced_df, test_size=0.3, stratify=reduced_df['category'], random_state=seed)
+validation_df, test_df = train_test_split(temp_df, test_size=0.5, stratify=temp_df['category'], random_state=seed)
 
-ds_output_class = pd.get_dummies(reduced_df['category'].values)
-print("\nDATASET CLASSES: ", ds_output_class.columns.tolist())
-dataset = tf.data.Dataset.from_tensor_slices((reduced_df['combined_text'].values, ds_output_class))
-dataset = dataset.shuffle(buffer_size=len(df), seed=seed, reshuffle_each_iteration=False)
+# Print class distribution for verification
+print("Training class distribution:\n", train_df['category'].value_counts(normalize=True))
+print("Validation class distribution:\n", validation_df['category'].value_counts(normalize=True))
+print("Test class distribution:\n", test_df['category'].value_counts(normalize=True))
 
-ds_size = len(df)
-num_train_samples = int((1 - validation_split) * ds_size)
-train_dataset = dataset.take(num_train_samples)
-validation_dataset = dataset.skip(num_train_samples)
+# Create datasets using tf.data.Dataset
+train_dataset = tf.data.Dataset.from_tensor_slices((train_df['combined_text'].values, pd.get_dummies(train_df['category'].values)))
+validation_dataset = tf.data.Dataset.from_tensor_slices((validation_df['combined_text'].values, pd.get_dummies(validation_df['category'].values)))
+test_dataset = tf.data.Dataset.from_tensor_slices((test_df['combined_text'].values, pd.get_dummies(test_df['category'].values)))
 
-train_dataset = train_dataset.batch(batch_size)
-validation_dataset = validation_dataset.batch(batch_size)
+print("\nDATASET CLASSES: ", len(pd.get_dummies(train_df['category'].values).columns.tolist()), len(pd.get_dummies(validation_df['category'].values).columns.tolist()), len(pd.get_dummies(test_df['category'].values).columns.tolist()))
 
-train_dataset = train_dataset.prefetch(tf.data.experimental.AUTOTUNE)
-validation_dataset = validation_dataset.prefetch(tf.data.experimental.AUTOTUNE)
+# Shuffle and batch datasets
+train_dataset = train_dataset.shuffle(buffer_size=len(train_df), seed=seed, reshuffle_each_iteration=False).batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+validation_dataset = validation_dataset.batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+test_dataset = test_dataset.batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
 
 tfhub_handle_preprocess = "https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3"
 tfhub_handle_encoder = "https://tfhub.dev/tensorflow/bert_en_wwm_uncased_L-24_H-1024_A-16/4"
@@ -269,17 +275,34 @@ loss, accuracy = classifier_model.evaluate(validation_dataset)
 
 print(f'Loss: {loss}')
 print(f'Accuracy: {accuracy}')
-classifier_model.save("BERT_trial_1_model", include_optimizer=False)
+classifier_model.save("BERT_trial_1_model_new16Nov", include_optimizer=False)
 
 
-loaded_model = tf.saved_model.load('BERT_trial_1_model')
+loaded_model = tf.saved_model.load('BERT_trial_1_model_new16Nov')
 #loaded_model.summary()
 
 pred = loaded_model(tf.constant(["Joe Biden wins the 2021 presidential elections.", "Taylor Swift wins a Grammy for ABCD", "Victoria Azarenka wins the US Open.", "Retail store in San Francisco robbed by 2 at gunpoint."]))
 pred_classes = np.argmax(pred, axis=1)
-print(pred_classes)
+print("\n\nPredicted classes: \n", pred_classes)
+
+print("Model performance based on the test dataset")
+
+test_actual_classes = test_df["category"]
+print("\n\nActual classes: \n", test_actual_classes)
+
+
 
 # for pred in pred_classes:
 #   print(news_classes[pred])
 
+# Confusion matrix
+cm = confusion_matrix(test_actual_classes, pred_classes)
+
+# Plot confusion matrix
+plt.figure(figsize=(10, 8))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=pd.get_dummies(train_df['category'].values).columns.tolist(), yticklabels=pd.get_dummies(train_df['category'].values).columns.tolist())
+plt.title("Confusion Matrix")
+plt.xlabel("Predicted Labels")
+plt.ylabel("True Labels")
+plt.show()
 
