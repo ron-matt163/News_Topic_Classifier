@@ -23,6 +23,8 @@ import re
 
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
+
 
 def build_classifier_model():
   text_input = tf.keras.layers.Input(shape=(), dtype=tf.string, name='text')
@@ -217,7 +219,7 @@ reduced_df = df[['combined_text', 'category']]
 tf.get_logger().setLevel('ERROR')
 
 AUTOTUNE = tf.data.AUTOTUNE
-batch_size = 32
+batch_size = 8
 seed = 42
 
 validation_split = 0.3
@@ -248,7 +250,7 @@ bert_raw_result = classifier_model(tf.constant(["Maria Sharapova beats Victoria 
 print(tf.sigmoid(bert_raw_result))
 loss = tf.keras.losses.CategoricalCrossentropy()
 metrics = tf.metrics.CategoricalAccuracy()
-epochs = 40
+epochs = 4
 steps_per_epoch = tf.data.experimental.cardinality(train_dataset).numpy()
 num_train_steps = steps_per_epoch * epochs
 num_warmup_steps = int(0.1*num_train_steps)
