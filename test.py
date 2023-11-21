@@ -95,10 +95,19 @@ print("\nDATASET CLASSES: ", dataset_classes)
 print("\nActual test classes: \n", test_df['category'])
 
 loaded_model = tf.saved_model.load('BERT_trial_1_model_new16Nov')
-#loaded_model.summary()
 
-pred = loaded_model(tf.constant(test_df['combined_text'].values.tolist()))
-pred_classes = [dataset_classes[i] for i in np.argmax(pred, axis=1)]
+pred_classes = []
+last_index = 0
+
+for i in range(int(len(test_df)/1500)):
+  pred = loaded_model(tf.constant((test_df['combined_text'].values.tolist())[i*1500:(i+1)*1500]))
+  pred_classes_per_batch = [dataset_classes[i] for i in np.argmax(pred, axis=1)]
+  pred_classes = pred_classes + pred_classes_per_batch
+  last_index = i
+
+pred = loaded_model(tf.constant((test_df['combined_text'].values.tolist())[(last_index+1)*1500:]))
+pred_classes_per_batch = [dataset_classes[i] for i in np.argmax(pred, axis=1)]
+pred_classes = pred_classes + pred_classes_per_batch
 print("\n\nPredicted classes: \n", pred_classes)
 
 print("Model performance based on the test dataset")
