@@ -35,7 +35,13 @@ def build_classifier_model():
     text_input = tf.keras.layers.Input(shape=(), dtype=tf.string, name='text')
     tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
 
-    text_input_str = tf.keras.layers.Lambda(lambda x: tf.strings.join(x, separator=' '))(text_input)
+    # Convert the tensor to a list of strings using tf.unstack
+    text_input_list = tf.unstack(text_input, axis=0)
+
+    # Join the list of strings
+    text_input_str = tf.keras.layers.Lambda(lambda x: tf.strings.join(x, separator=' '))(text_input_list)
+
+    # Tokenize the string input
     encoder_inputs = tokenizer(text_input_str, truncation=True, padding=True, return_tensors="tf")['input_ids']
 
     encoder = TFRobertaModel.from_pretrained("roberta-base", trainable=True, name='RoBERTa_encoder')
