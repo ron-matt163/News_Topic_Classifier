@@ -32,27 +32,34 @@ os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 
 
 def build_classifier_model():
-    text_input = tf.keras.layers.Input(shape=(), dtype=tf.string, name='text')
+    # Load the RoBERTa tokenizer
     tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
 
-    # Convert the tensor to a list of strings using tf.unstack
-    text_input_list = tf.unstack(text_input, axis=0)
+    # Input layer for text
+    text_input = tf.keras.layers.Input(shape=(), dtype=tf.string, name='text')
 
-    # Join the list of strings
-    text_input_str = tf.keras.layers.Lambda(lambda x: tf.strings.join(x, separator=' '))(text_input_list)
+    # Tokenize the input text
+    encoder_inputs = tokenizer(text_input, truncation=True, padding=True, return_tensors="tf")['input_ids']
 
-    # Tokenize the string input
-    encoder_inputs = tokenizer(text_input_str, truncation=True, padding=True, return_tensors="tf")['input_ids']
-
+    # Load the RoBERTa model
     encoder = TFRobertaModel.from_pretrained("roberta-base", trainable=True, name='RoBERTa_encoder')
+
+    # Get the outputs from RoBERTa
     outputs = encoder(encoder_inputs)
 
-    net = tf.keras.layers.GlobalAveragePooling1D()(outputs.last_hidden_state)
-    
+    # Use the pooled output as the representation of the entire input sequence
+    net = outputs['pooled_output']
+
+    # Apply dropout for regularization
     net = tf.keras.layers.Dropout(0.45)(net)
+
+    # Add a dense layer with softmax activation for classification
     net = tf.keras.layers.Dense(26, activation='softmax', name='classifier')(net)
-    
-    return tf.keras.Model(text_input, net)
+
+    # Create the Keras model
+    model = tf.keras.Model(text_input, net)
+
+    return model
 
 nltk.download('stopwords')
 nltk.download("punkt")
