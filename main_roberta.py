@@ -34,11 +34,13 @@ os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 def build_classifier_model():
     text_input = tf.keras.layers.Input(shape=(), dtype=tf.string, name='text')
     tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
-    encoder_inputs = tokenizer(text_input, truncation=True, padding=True, return_tensors="tf")['input_ids']
+
+    text_input_str = tf.keras.layers.Lambda(lambda x: tf.strings.join(x, separator=' '))(text_input)
+    encoder_inputs = tokenizer(text_input_str, truncation=True, padding=True, return_tensors="tf")['input_ids']
 
     encoder = TFRobertaModel.from_pretrained("roberta-base", trainable=True, name='RoBERTa_encoder')
     outputs = encoder(encoder_inputs)
-    
+
     net = tf.keras.layers.GlobalAveragePooling1D()(outputs.last_hidden_state)
     
     net = tf.keras.layers.Dropout(0.45)(net)
