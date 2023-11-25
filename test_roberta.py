@@ -30,8 +30,8 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 
 
-gdown.download('https://drive.google.com/drive/folders/1GQjgJcVLNFv5po3Q97exZ7nSFoUoZBZj?usp=sharing', quiet=False)
-with zipfile.ZipFile('roberta_trial_1_model_new21Nov.zip', 'r') as zip_ref:
+gdown.download('https://drive.google.com/uc?id=1GQjgJcVLNFv5po3Q97exZ7nSFoUoZBZj', quiet=False)
+with zipfile.ZipFile('roberta_trial_1_model-20231125T200958Z-001.zip', 'r') as zip_ref:
     zip_ref.extractall()
 
 file_path = 'news_class_dataset.json'
@@ -94,7 +94,7 @@ dataset_classes = pd.get_dummies(train_df['category'].values).columns.tolist()
 print("\nDATASET CLASSES: ", dataset_classes)
 print("\nActual test classes: \n", test_df['category'])
 
-loaded_model = tf.saved_model.load('roberta_trial_1_model_new21Nov')
+loaded_model = tf.saved_model.load('roberta_trial_1_model_new25Nov')
 
 pred_classes = []
 last_index = 0
