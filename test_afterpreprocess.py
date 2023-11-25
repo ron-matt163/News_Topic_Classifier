@@ -10,9 +10,11 @@ import matplotlib.pyplot as plt
 from collections import Counter
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
-# import nltk
-# from nltk.corpus import stopwords
-# from nltk.util import ngrams
+import nltk
+from nltk import word_tokenize
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+from nltk.util import ngrams
 from sklearn.preprocessing import LabelEncoder
 import os
 import shutil
@@ -29,6 +31,10 @@ import os
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 
+nltk.download('stopwords')
+nltk.download("punkt")
+nltk.download("wordnet")
+stopwords_set = set(stopwords.words('english'))
 
 gdown.download('https://drive.google.com/uc?id=1SucKmwpwhoptI7eO3XQM4AjibWaJc9oc', quiet=False)
 with zipfile.ZipFile('BERT_trial_1_model_new16Nov-20231116T234003Z-001.zip', 'r') as zip_ref:
@@ -77,6 +83,20 @@ df["category"] = df["category"].replace(
 df['combined_text'] = df['headline'] + " " + df['short_description']
 
 reduced_df = df[['combined_text', 'category']]
+
+# text preprocessing
+lem = WordNetLemmatizer()
+max_len = 0
+for i, row in reduced_df.iterrows():
+    combined_txt_tokenized = word_tokenize(row.combined_text)
+    cleaned_combined_txt = [re.sub('[^\w\s]', '', token) for token in combined_txt_tokenized if token not in stopwords_set]
+    lemmatized_combined_txt = [lem.lemmatize(token) for token in cleaned_combined_txt]
+    lemmatized_combined_txt = [token for token in lemmatized_combined_txt if token != '']
+    lemmatized_combined_txt = [re.sub('\d+', '', token) for token in lemmatized_combined_txt]
+    reduced_df.at[i, "combined_text"] = (" ").join(lemmatized_combined_txt)
+
+print("REDUCED DF HEAD: \n", reduced_df.head())
+
 seed = 42
 
 train_df, temp_df = train_test_split(reduced_df, test_size=0.3, stratify=reduced_df['category'], random_state=seed)
