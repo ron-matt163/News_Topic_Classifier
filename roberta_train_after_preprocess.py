@@ -47,6 +47,8 @@ def build_classifier_model():
 
 nltk.download('stopwords')
 nltk.download("punkt")
+nltk.download("wordnet")
+stopwords_set = set(stopwords.words('english'))
 
 file_path = 'news_class_dataset.json'
 df = pd.read_json(file_path, lines=True)
