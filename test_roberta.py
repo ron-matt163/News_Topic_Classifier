@@ -20,6 +20,9 @@ import tensorflow as tf
 import tensorflow_hub as hub
 import tensorflow_text as text
 from official.nlp import optimization
+import tensorflow.keras.backend as K
+import tokenizers
+from transformers import RobertaTokenizer, TFRobertaModel
 import matplotlib.pyplot as plt
 import re
 from sklearn.model_selection import train_test_split
@@ -30,8 +33,8 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 
 
-gdown.download('https://drive.google.com/uc?id=1GQjgJcVLNFv5po3Q97exZ7nSFoUoZBZj', quiet=False)
-with zipfile.ZipFile('roberta_trial_1_model-20231125T200958Z-001.zip', 'r') as zip_ref:
+gdown.download('https://drive.google.com/uc?id=19umh3riW5GCwd0MPaEphU5aTHea2SKDW', quiet=False)
+with zipfile.ZipFile('roberta_trial_1_model_new21Nov-20231126T185130Z-001', 'r') as zip_ref:
     zip_ref.extractall()
 
 file_path = 'news_class_dataset.json'
@@ -77,6 +80,9 @@ df["category"] = df["category"].replace(
 df['combined_text'] = df['headline'] + " " + df['short_description']
 
 reduced_df = df[['combined_text', 'category']]
+
+AUTOTUNE = tf.data.AUTOTUNE
+batch_size = 8
 seed = 42
 
 train_df, temp_df = train_test_split(reduced_df, test_size=0.3, stratify=reduced_df['category'], random_state=seed)
@@ -86,9 +92,14 @@ test_df.to_csv('test_dataset.csv', index=False)
 
 
 # Create datasets using tf.data.Dataset
-train_dataset = tf.data.Dataset.from_tensor_slices((train_df['combined_text'].values, pd.get_dummies(train_df['category'].values)))
-validation_dataset = tf.data.Dataset.from_tensor_slices((validation_df['combined_text'].values, pd.get_dummies(validation_df['category'].values)))
-test_dataset = tf.data.Dataset.from_tensor_slices((test_df['combined_text'].values, pd.get_dummies(test_df['category'].values)))
+# train_dataset = tf.data.Dataset.from_tensor_slices((train_df['combined_text'].values, pd.get_dummies(train_df['category'].values)))
+# validation_dataset = tf.data.Dataset.from_tensor_slices((validation_df['combined_text'].values, pd.get_dummies(validation_df['category'].values)))
+# test_dataset = tf.data.Dataset.from_tensor_slices((test_df['combined_text'].values, pd.get_dummies(test_df['category'].values)))
+
+roberta_tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+X_test_encoded = roberta_tokenizer(text=test_df["combined_text"].tolist(), padding='max_length', truncation=True, max_length=256,return_token_type_ids=True,return_tensors='tf')
+test_dataset = tf.data.Dataset.from_tensor_slices(({'input_word_ids': X_test_encoded['input_ids'],'input_mask': X_test_encoded['attention_mask']}, pd.get_dummies(test_df['category'].values))).shuffle(buffer_size=len(X_test_encoded)).batch(batch_size).prefetch(1)
+
 
 dataset_classes = pd.get_dummies(train_df['category'].values).columns.tolist()
 print("\nDATASET CLASSES: ", dataset_classes)
@@ -100,12 +111,12 @@ pred_classes = []
 last_index = 0
 
 for i in range(int(len(test_df)/1500)):
-  pred = loaded_model(tf.constant((test_df['combined_text'].values.tolist())[i*1500:(i+1)*1500]))
+  pred = loaded_model.predict({'input_ids':(X_test_encoded['input_ids'][i*1500:(i+1)*1500]), 'attention_mask': (X_test_encoded['attention_mask'][i*1500:(i+1)*1500])})
   pred_classes_per_batch = [dataset_classes[i] for i in np.argmax(pred, axis=1)]
   pred_classes = pred_classes + pred_classes_per_batch
   last_index = i
 
-pred = loaded_model(tf.constant((test_df['combined_text'].values.tolist())[(last_index+1)*1500:]))
+pred = loaded_model.predict({'input_ids':(X_test_encoded['input_ids'][(last_index+1)*1500:]), 'attention_mask': (X_test_encoded['attention_mask'][(last_index+1)*1500:])})
 pred_classes_per_batch = [dataset_classes[i] for i in np.argmax(pred, axis=1)]
 pred_classes = pred_classes + pred_classes_per_batch
 print("\n\nPredicted classes: \n", pred_classes)
